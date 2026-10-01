@@ -21,6 +21,78 @@ deterministic harness.
 - React Router
 - Supabase JavaScript client
 
+## M01.1 — Privy Foundation
+
+The isolated `/auth-test` route verifies optional email/Google authentication,
+automatic embedded Solana wallet provisioning, the authenticated user's wallet
+address, and logout. Open it directly; it is not linked from the player journey.
+It is a diagnostic, not a Player Passport or a saved player profile.
+
+Set `VITE_PRIVY_APP_ID` in the ignored local `.env` and restart Vite. For a hosted
+build, set it in that deployment's environment and rebuild. The app ID is public;
+do not add a Privy app secret or Google client secret to any `VITE_*` variable.
+When the app ID is missing, guest routes still render and `/auth-test` explains
+that authentication is unavailable.
+
+Dashboard configuration for this milestone is already complete: email and Google
+login, SVM/Solana wallets, and automatic embedded wallet creation for all users
+are enabled; EVM wallets are disabled. The frontend explicitly uses
+`embeddedWallets.solana.createOnLogin: "all-users"` and disables Ethereum wallet
+creation. The Privy login modal is intentional: automatic wallet creation does
+not run through the direct custom email/OAuth login hooks.
+
+If domain or OAuth redirect restrictions are configured in Privy, they must
+permit the actual local/deployment origin and OAuth return URL. No separate
+Solana RPC URL, wallet funding, transaction, or signature is required here.
+
+Privy has no connection to the Supabase client or NO FOLD player storage.
+`nofold_player_id`, `nofold_player_name`, existing room membership, anon requests,
+realtime subscriptions, gameplay, and scoring retain their existing behavior.
+Neither login nor logout links a guest to an account or changes the guest UUID.
+Authentication readiness never gates the router. SDK hooks and status are used
+only by the diagnostic screen. M01.2 is not implemented.
+
+### Manual acceptance checks
+
+1. Run `npm run dev` and use the exact local URL Vite prints. Open `/auth-test`.
+   Wait for **Privy SDK: Ready** and **Authentication: Guest / signed out**.
+2. Click **Sign in with email or Google**, choose email, enter an email address,
+   and enter the OTP received in that inbox. Expect **Signed in**, a Privy user
+   ID, **Embedded Solana wallet: Provisioned**, and a full Solana address.
+   **Wallet connection: Ready** confirms the connected wallet matches the
+   authenticated user's embedded wallet. Use an account that has never signed
+   into this Privy app to specifically test first-time automatic provisioning.
+3. Record the user ID and address. Refresh `/auth-test`; after initialization,
+   expect the same authenticated user and address. Navigate to `/` and back to
+   `/auth-test` directly and check again.
+4. Click **Sign out**. Expect **Guest / signed out**, user ID/address replaced by
+   dashes, and the sign-in button available. Refresh and verify it remains signed
+   out. Sign in with the same email again and confirm the original address is
+   reused.
+5. Sign out, then open the modal and choose **Google**. Complete Google's account
+   selection/consent flow. Repeat the provisioning, refresh, logout, and relogin
+   checks. Compare each login method with its own previous user/address; do not
+   assume unrelated email and Google accounts represent the same Privy user.
+6. Cancel a login attempt and confirm the diagnostic remains usable and `/create`
+   and `/join` remain accessible. Authentication success without a wallet must
+   not count as provisioning success: the screen reports the missing wallet
+   separately. If it persists, sign out/in to retry automatic provisioning.
+7. Guest regression: before signing in, create/join a room and record
+   `nofold_player_id` and `nofold_player_name` in browser devtools. Keep the room
+   open and open `/auth-test` in another tab on the same origin. Sign in and out;
+   confirm those NO FOLD storage values and the room membership remain unchanged.
+   With three separate browser identities, verify realtime play, response locks,
+   CALL/FOLD, score updates, refresh recovery, and replay still work as before.
+   Close the diagnostic and verify guest create/join/play requires no login.
+
+Run `npm test` and `npm run build` for automated regression and build checks.
+Live email delivery, Google OAuth, provisioning, and session restoration require
+the browser checks above; passing a build does not verify them.
+
+Official references: [SDK installation](https://docs.privy.io/basics/react/installation),
+[automatic wallet creation](https://docs.privy.io/basics/react/advanced/automatic-wallet-creation),
+and [linked versus connected wallets](https://docs.privy.io/wallets/wallets/get-a-wallet/get-connected-wallet).
+
 ## Environment
 
 Create a local `.env` from `.env.example`:
@@ -28,6 +100,7 @@ Create a local `.env` from `.env.example`:
 ```bash
 VITE_SUPABASE_URL=
 VITE_SUPABASE_ANON_KEY=
+VITE_PRIVY_APP_ID=
 ```
 
 Do not commit real Supabase keys.

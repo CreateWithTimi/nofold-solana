@@ -18,6 +18,13 @@ export const router = createBrowserRouter([
       { path: "room/:roomCode", element: <RoomScreen /> },
       { path: "game/:roomCode", element: <GameScreen /> },
       { path: "demo", element: <M01DemoScreen /> },
+      {
+        path: "auth-test",
+        lazy: async () => {
+          const { PrivyFoundationScreen } = await import("../../screens/auth/PrivyFoundationScreen");
+          return { Component: PrivyFoundationScreen };
+        },
+      },
     ],
   },
 ]);
